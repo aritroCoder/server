@@ -11,14 +11,13 @@ class Offer:
     tokens_offered: int
     want_provider: str
     want_model: str
-    proxy_host: str
-    proxy_port: int
+    proxy_url: str
     ws: web.WebSocketResponse
 
 
 def offer_from_message(msg: dict, ws: web.WebSocketResponse, offer_id: str) -> Offer:
     """Build Offer from parsed 'register' WS message. Reads: provider, model,
-    tokens_offered, want_provider, want_model, proxy_host, proxy_port.
+    tokens_offered, want_provider, want_model, proxy_url.
     Raises KeyError on missing fields."""
     return Offer(
         offer_id=offer_id,
@@ -27,8 +26,7 @@ def offer_from_message(msg: dict, ws: web.WebSocketResponse, offer_id: str) -> O
         tokens_offered=msg["tokens_offered"],
         want_provider=msg["want_provider"],
         want_model=msg["want_model"],
-        proxy_host=msg["proxy_host"],
-        proxy_port=msg["proxy_port"],
+        proxy_url=msg["proxy_url"],
         ws=ws,
     )
 
@@ -50,8 +48,7 @@ def paired_message(
         "type": "paired",
         "offer_id": offer.offer_id,
         "temp_key": temp_key,
-        "peer_host": peer.proxy_host,
-        "peer_port": peer.proxy_port,
+        "peer_url": peer.proxy_url,
         "peer_provider": peer.provider,
         "peer_model": peer.model,
         "tokens_granted": tokens_granted,
