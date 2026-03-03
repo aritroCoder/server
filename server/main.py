@@ -3,10 +3,19 @@ import os
 import uuid
 from aiohttp import web
 from server.matcher import Matcher
-from server.models import offer_from_message, paired_message, ack_message, error_message
+from server.models import (
+    offer_from_message,
+    paired_message,
+    ack_message,
+    error_message,
+    usage_update_message,
+)
 from server.pricing import is_known_model
 
 matcher = Matcher()
+
+# Maps offer_id -> peer's WebSocket so usage_report can be relayed
+_peer_map: dict[str, web.WebSocketResponse] = {}
 
 
 async def health_handler(request: web.Request) -> web.Response:
@@ -54,6 +63,8 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                         pairing = await matcher.add_offer(offer)
                         if pairing:
                             a, b = pairing.offer_a, pairing.offer_b
+                            _peer_map[a.offer_id] = b.ws
+                            _peer_map[b.offer_id] = a.ws
                             await a.ws.send_json(
                                 paired_message(
                                     a,
@@ -76,6 +87,14 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                             )
                     except KeyError as e:
                         await ws.send_json(error_message(f"Missing field: {e}"))
+
+                elif msg_type == "usage_report":
+                    offer_id = data.get("offer_id", "")
+                    tokens = data.get("tokens", 0)
+                    peer_ws = _peer_map.get(offer_id)
+                    if peer_ws and not peer_ws.closed:
+                        await peer_ws.send_json(usage_update_message(tokens))
+
                 else:
                     await ws.send_json(
                         error_message(f"Unknown message type: {msg_type}")
@@ -88,6 +107,9 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                 break
     finally:
         await matcher.remove_by_ws(ws)
+        stale = [oid for oid, pw in _peer_map.items() if pw is ws]
+        for oid in stale:
+            del _peer_map[oid]
 
     return ws
 
