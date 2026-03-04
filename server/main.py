@@ -38,6 +38,12 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                 msg_type = data.get("type")
                 if msg_type == "register":
                     try:
+                        input_tokens_offered = data.get("input_tokens_offered", 0)
+                        output_tokens_offered = data.get("output_tokens_offered", 0)
+                        advanced_mode = (
+                            input_tokens_offered > 0 or output_tokens_offered > 0
+                        )
+
                         if not is_known_model(data.get("model", "")):
                             await ws.send_json(
                                 error_message(f"Unknown model: {data.get('model')}")
@@ -53,6 +59,15 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                         if data.get("tokens_offered", 0) <= 0:
                             await ws.send_json(
                                 error_message("tokens_offered must be positive")
+                            )
+                            continue
+                        if advanced_mode and (
+                            input_tokens_offered <= 0 or output_tokens_offered <= 0
+                        ):
+                            await ws.send_json(
+                                error_message(
+                                    "input_tokens_offered and output_tokens_offered must both be positive in advanced mode"
+                                )
                             )
                             continue
 
@@ -73,6 +88,10 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                                     proxy_key=pairing.temp_key_a,
                                     tokens_granted=pairing.tokens_b_serves,
                                     tokens_to_serve=pairing.tokens_a_serves,
+                                    input_tokens_granted=pairing.input_tokens_b_serves,
+                                    output_tokens_granted=pairing.output_tokens_b_serves,
+                                    input_tokens_to_serve=pairing.input_tokens_a_serves,
+                                    output_tokens_to_serve=pairing.output_tokens_a_serves,
                                 )
                             )
                             await b.ws.send_json(
@@ -83,6 +102,10 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                                     proxy_key=pairing.temp_key_b,
                                     tokens_granted=pairing.tokens_a_serves,
                                     tokens_to_serve=pairing.tokens_b_serves,
+                                    input_tokens_granted=pairing.input_tokens_a_serves,
+                                    output_tokens_granted=pairing.output_tokens_a_serves,
+                                    input_tokens_to_serve=pairing.input_tokens_b_serves,
+                                    output_tokens_to_serve=pairing.output_tokens_b_serves,
                                 )
                             )
                     except KeyError as e:
@@ -91,9 +114,17 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                 elif msg_type == "usage_report":
                     offer_id = data.get("offer_id", "")
                     tokens = data.get("tokens", 0)
+                    input_tokens = data.get("input_tokens", 0)
+                    output_tokens = data.get("output_tokens", 0)
                     peer_ws = _peer_map.get(offer_id)
                     if peer_ws and not peer_ws.closed:
-                        await peer_ws.send_json(usage_update_message(tokens))
+                        await peer_ws.send_json(
+                            usage_update_message(
+                                tokens=tokens,
+                                input_tokens=input_tokens,
+                                output_tokens=output_tokens,
+                            )
+                        )
 
                 else:
                     await ws.send_json(

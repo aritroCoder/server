@@ -1,7 +1,11 @@
 import asyncio
 import secrets
-from server.models import Offer, Pairing, paired_message
-from server.pricing import calculate_exchange
+from server.models import Offer, Pairing
+from server.pricing import (
+    calculate_exchange,
+    calculate_input_exchange,
+    calculate_output_exchange,
+)
 
 
 class Matcher:
@@ -24,14 +28,40 @@ class Matcher:
             return None
 
     def _make_pairing(self, a: Offer, b: Offer) -> Pairing:
-        tokens_a_serves = min(
-            a.tokens_offered,
-            calculate_exchange(b.model, b.tokens_offered, a.model),
-        )
-        tokens_b_serves = min(
-            b.tokens_offered,
-            calculate_exchange(a.model, a.tokens_offered, b.model),
-        )
+        input_tokens_a_serves = 0
+        output_tokens_a_serves = 0
+        input_tokens_b_serves = 0
+        output_tokens_b_serves = 0
+
+        if a.advanced and b.advanced:
+            input_tokens_a_serves = min(
+                a.input_tokens_offered,
+                calculate_input_exchange(b.model, b.input_tokens_offered, a.model),
+            )
+            output_tokens_a_serves = min(
+                a.output_tokens_offered,
+                calculate_output_exchange(b.model, b.output_tokens_offered, a.model),
+            )
+            input_tokens_b_serves = min(
+                b.input_tokens_offered,
+                calculate_input_exchange(a.model, a.input_tokens_offered, b.model),
+            )
+            output_tokens_b_serves = min(
+                b.output_tokens_offered,
+                calculate_output_exchange(a.model, a.output_tokens_offered, b.model),
+            )
+            tokens_a_serves = input_tokens_a_serves + output_tokens_a_serves
+            tokens_b_serves = input_tokens_b_serves + output_tokens_b_serves
+        else:
+            tokens_a_serves = min(
+                a.tokens_offered,
+                calculate_exchange(b.model, b.tokens_offered, a.model),
+            )
+            tokens_b_serves = min(
+                b.tokens_offered,
+                calculate_exchange(a.model, a.tokens_offered, b.model),
+            )
+
         return Pairing(
             offer_a=a,
             offer_b=b,
@@ -39,6 +69,10 @@ class Matcher:
             temp_key_b=secrets.token_urlsafe(32),
             tokens_a_serves=tokens_a_serves,
             tokens_b_serves=tokens_b_serves,
+            input_tokens_a_serves=input_tokens_a_serves,
+            output_tokens_a_serves=output_tokens_a_serves,
+            input_tokens_b_serves=input_tokens_b_serves,
+            output_tokens_b_serves=output_tokens_b_serves,
         )
 
     async def remove_by_ws(self, ws) -> None:

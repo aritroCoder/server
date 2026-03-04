@@ -33,11 +33,37 @@ def avg_price(model: str) -> float:
     return (inp + out) / 2
 
 
+def input_price(model: str) -> float:
+    inp, _ = PRICING[model]
+    return inp
+
+
+def output_price(model: str) -> float:
+    _, out = PRICING[model]
+    return out
+
+
 def calculate_exchange(
     offered_model: str, offered_tokens: int, wanted_model: str
 ) -> int:
     return math.floor(
         offered_tokens * avg_price(offered_model) / avg_price(wanted_model)
+    )
+
+
+def calculate_input_exchange(
+    offered_model: str, offered_input_tokens: int, wanted_model: str
+) -> int:
+    return math.floor(
+        offered_input_tokens * input_price(offered_model) / input_price(wanted_model)
+    )
+
+
+def calculate_output_exchange(
+    offered_model: str, offered_output_tokens: int, wanted_model: str
+) -> int:
+    return math.floor(
+        offered_output_tokens * output_price(offered_model) / output_price(wanted_model)
     )
 
 
