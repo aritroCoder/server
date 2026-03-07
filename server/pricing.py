@@ -59,6 +59,9 @@ def _normalize_model(model: str) -> str:
 
 
 def _resolve_model(model: str) -> str | None:
+    # Currently we are matching models with the lists defined above, so new models will not 
+    # update automatically. This is done to ensure pricing is consistent and for unknown/new
+    # models we cannot guarantee that without manual review.
     normalized = _normalize_model(model)
 
     if normalized in PRICING:
