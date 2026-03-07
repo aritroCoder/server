@@ -49,6 +49,10 @@ FAMILY_FALLBACK: dict[str, str] = {
     "gemini": "gemini-2.5-flash",
 }
 
+# Precomputed once at module load: PRICING keys sorted by length descending,
+# used by _resolve_model() for prefix/substring matching.
+_PRICING_KEYS_BY_LENGTH: list[str] = sorted(PRICING.keys(), key=len, reverse=True)
+
 
 def _normalize_model(model: str) -> str:
     return model.strip().lower().replace("_", "-")
@@ -65,7 +69,7 @@ def _resolve_model(model: str) -> str | None:
         if alias in PRICING:
             return alias
 
-    for key in sorted(PRICING.keys(), key=len, reverse=True):
+    for key in _PRICING_KEYS_BY_LENGTH:
         if normalized == key or normalized.startswith(f"{key}-"):
             return key
 
