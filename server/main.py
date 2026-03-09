@@ -10,7 +10,6 @@ from server.models import (
     error_message,
     usage_update_message,
 )
-from server.pricing import is_known_model
 from server.pricing import SUPPORTED_MODELS_BY_PROVIDER, get_supported_provider_models
 
 matcher = Matcher()
