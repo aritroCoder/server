@@ -98,10 +98,10 @@ def error_message(text: str) -> dict[str, str]:
     return {"type": "error", "message": text}
 
 
-def usage_update_message(
+def usage_report_message(
     tokens: int = 0, input_tokens: int = 0, output_tokens: int = 0
 ) -> dict[str, object]:
-    msg: dict[str, object] = {"type": "usage_update", "tokens": tokens}
+    msg: dict[str, object] = {"type": "usage_report", "tokens": tokens}
     if input_tokens:
         msg["input_tokens"] = input_tokens
     if output_tokens:

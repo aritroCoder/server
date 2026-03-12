@@ -9,7 +9,7 @@ from server.models import (
     paired_message,
     ack_message,
     error_message,
-    usage_update_message,
+    usage_report_message,
     unpaired_message,
 )
 from server.pricing import SUPPORTED_MODELS_BY_PROVIDER, get_supported_provider_models
@@ -162,7 +162,7 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                     peer_ws = _peer_map.get(offer_id)
                     if peer_ws and not peer_ws.closed:
                         await peer_ws.send_json(
-                            usage_update_message(
+                            usage_report_message(
                                 tokens=tokens,
                                 input_tokens=input_tokens,
                                 output_tokens=output_tokens,
